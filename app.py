@@ -41,9 +41,13 @@ app.layout = html.Div([
                  'Vitoria'],
         value='Salvador',
         inline=True,
-        id='city-radio')
+        id='city-radio',
+        style={'textAlign': 'center', 'fontSize': 20,
+               'margin': 30, 'fontFamily': 'Arial',
+               })
     ]),
-    html.H1(children=f'Temperatura de Cidades Brasileiras durante os anos'),
+    html.H1(children='Temperatura de Cidades Brasileiras durante os anos',
+            style={'textAlign': 'center', 'fontFamily': 'Arial'}),
     
     html.Div(className='row', children=[
         dcc.Dropdown(options=[{'label': 'Janeiro', 'value': 'JAN'},
@@ -64,7 +68,9 @@ app.layout = html.Div([
                     {'label': 'Primavera', 'value': 'S-O-N'},
                     {'label': 'Anual', 'value': 'metANN'}],
                     value='JAN',
-                    id='month-radio')
+                    id='month-radio',
+                    style={'textAlign': 'center',
+                           'fontFamily': 'Arial', 'align': 'center'})
     ]),
     dcc.Graph(figure=px.line(df, x='YEAR', y='D-J-F'), id='graph')
 ])
