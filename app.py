@@ -1,6 +1,7 @@
-from dash import Dash, html, dash_table, dcc, callback, Output, Input
+from dash import Dash, html, dcc, callback, Output, Input
 import pandas as pd
 import numpy as np
+import plotly.graph_objs as go
 import plotly.express as px
 
 dict_cidades = {
@@ -30,7 +31,7 @@ app.layout = html.Div([
             style={'textAlign': 'center', 'fontFamily': 'Arial'}),
     
     html.Div(className='row', children=[
-    dcc.Dropdown(
+    dcc.Checklist(
         options=['Belem',
                  'Curitiba',
                  'Fortaleza',
@@ -44,17 +45,13 @@ app.layout = html.Div([
                  'São Luiz',
                  'Vitoria'],
         value=['Salvador'],
-        multi=True,
         id='city-radio',
+        labelStyle={'display': 'inline-block'},
         style={'textAlign': 'center', 'fontSize': 20,
-                'fontFamily': 'Arial',
+                'fontFamily': 'Arial'
                })
     ]),
-    
-
-    dcc.Graph(figure=px.line(df, x='YEAR', y='D-J-F', color_discrete_sequence=px.colors.qualitative.T10
-                             ,title='Gráfico linear da Temperatura de Cidades Brasileiras durante os anos'), id='graph' ),
-    
+    html.Br(),
     html.Div(className='row', children=[
         dcc.Dropdown(options=[{'label': 'Janeiro', 'value': 'JAN'},
                     {'label': 'Fevereiro', 'value': 'FEB'},
@@ -86,31 +83,20 @@ app.layout = html.Div([
                  style={'textAlign': 'center', 'fontFamily': 'Arial', 'align': 'center'},
                  labelStyle={'display': 'inline-block'}),
     
+
+    dcc.Graph(figure=px.line(df, x='YEAR', y='D-J-F', color_discrete_sequence=px.colors.qualitative.T10
+                             ,title='Gráfico linear da Temperatura de Cidades Brasileiras durante os anos'), id='graph' ),
+    
+    
     dcc.Graph(figure=px.box(df, y='D-J-F',title='Gráfico BoxPlot da temperatura médiade Cidades Brasileiras durante os anos'), id='box'),
     
-    dcc.Dropdown(
-        options=['Belem',
-                 'Curitiba',
-                 'Fortaleza',
-                 'Goiania',
-                 'Macapa',
-                 'Manaus',
-                 'Recife',
-                 'Rio de Janeiro',
-                 'Salvador',    
-                 'São Paulo',
-                 'São Luiz',
-                 'Vitoria'],
-        value='Salvador',
-        id='city-radio2',
-        style={'textAlign': 'center', 'fontSize': 20,
-                'fontFamily': 'Arial',
-               })
-    
+    dcc.Graph(figure=px.histogram(df, x='D-J-F',  title='Histograma da temperatura média de Cidades Brasileiras durante os anos'), id='histogram') 
 ])
 
 @callback(
+    Output(component_id='box', component_property='figure'),
     Output(component_id='graph', component_property='figure'),
+    Output(component_id='histogram', component_property='figure'),
     Input(component_id='city-radio', component_property='value'),
     Input(component_id='month-radio', component_property='value'),
     Input(component_id='fill-radio', component_property='value')   
@@ -122,7 +108,10 @@ def update_graph(city_chosen, month_chosen, fill_chosen):
         string +=  i + ', '
     string = string[:-2]  
     
-    fig = px.line(title='Gráfico linear da temperatura de Cidades Brasileiras durante os anos: ' + string) 
+    fig_line = px.line(title='Gráfico linear da temperatura de Cidades Brasileiras durante os anos: ' + string) 
+    fig_boxplot = px.box(title='Gráfico BoxPlot da temperatura de Cidades Brasileiras durante os anos: ' + string)
+    
+    histogram_data = []
     
     for i in city_chosen:
     
@@ -134,29 +123,14 @@ def update_graph(city_chosen, month_chosen, fill_chosen):
         elif fill_chosen == 'Interpolação linear':
             df = df.interpolate(method='linear')
             
-        fig.add_trace(px.line(df, x='YEAR', y=month_chosen, color_discrete_sequence=px.colors.qualitative.T10, line_shape='linear').data[0])
+        fig_line.add_trace(go.Scatter(x=df['YEAR'], y=df[month_chosen], name=i))
+        fig_boxplot.add_trace(go.Box(y=df[month_chosen], name=i))
+        histogram_data.append(go.Histogram(x=df[month_chosen], name=i))
         
-    return fig
+    fig_histogram = go.Figure(data=histogram_data)
 
-@callback(
-    Output(component_id='box', component_property='figure'),
-    Input(component_id='city-radio2', component_property='value'),
-    Input(component_id='month-radio', component_property='value'),
-    Input(component_id='fill-radio', component_property='value')   
-)
-def update_box(city_chosen, month_chosen, fill_chosen):    
-    
-    df = pd.read_csv(dict_cidades[city_chosen])
-    df = df.replace(999.90, np.nan)
-    
-    if fill_chosen == 'Último valor válido':
-        df = df.fillna(method='ffill')
-    elif fill_chosen == 'Interpolação linear':
-        df = df.interpolate(method='linear')
-
-    fig = px.box(df, y=month_chosen, title='Gráfico BoxPlot da temperatura de Cidades Brasileiras durante os anos: ' + city_chosen) 
-
-    return fig
+        
+    return fig_boxplot, fig_line, fig_histogram
 
 if __name__ == '__main__':
     app.run(debug=True)
